@@ -113,27 +113,27 @@
             .style("fill", function (d) { return color(d.Species) } )
       }
       async function load_my_car() {
-        let data = await d3.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data")
+        let data = await d3.csv("my_auto_mpg.csv")
         let margin = 50
         let width = 200
         let height = 200
-        let x = d3.scaleLog().domain([10, 150]).range([0, width])
-        let y = d3.scaleLog().domain([10, 150]).range([height, 0])
+        let x = d3.scaleLinear().domain([0, 250]).range([0, width])
+        let y = d3.scaleLinear().domain([0, 60]).range([height, 0])
         
         d3.select("#my_car").append("g")
         .attr("transform", `translate(${margin},${margin})`)
         .selectAll("circle").data(data).enter().append("circle")
-        .attr("cx",function(d, i){return x(d.AverageCityMPG)})
-        .attr("cy",function(d, i){return y(d.AverageHighwayMPG)})
-        .attr("r",function(d, i){return Number(d.EngineCylinders) + 2})
+        .attr("cx",function(d, i){return x(d.horsepower)})
+        .attr("cy",function(d, i){return y(d.mpg)})
+        .attr("r",function(d, i){return Number(d.cylinders) + 2})
 
         d3.select("#my_car").append("g")
         .attr("transform",`translate(${margin},${margin})`)
-        .call(d3.axisLeft(y).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
+        .call(d3.axisLeft(y))//.tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
 
         d3.select("#my_car").append("g")
         .attr("transform",`translate(${margin},${height+margin})`)
-        .call(d3.axisBottom(x).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
+        .call(d3.axisBottom(x))//.tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
       }
     </script>
   </body>
