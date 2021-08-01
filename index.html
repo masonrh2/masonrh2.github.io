@@ -4,90 +4,59 @@
     <meta charset="UTF-8">
     <title>Narrative Visualization</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
-    <script src="https://d3js.org/d3.v5.min.js"></script>  
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body onload="init()">
-    <div>sup</div>
-    <svg id="my_car" width=300 height=300></svg>
+    <svg id="my_car"></svg>
     <svg id="fuel_eff" width=300 height=300></svg>
     <div id="my_dataviz"></div>
     <script>
       function init () {
-        load_fuel_eff()
         load_flower()
-        load_my_car()
-      }
-      async function load_fuel_eff() {
-        let data = await d3.csv("https://flunky.github.io/cars2017.csv")
-        let margin = 50
-        let width = 200
-        let height = 200
-        let x = d3.scaleLog().domain([10, 150]).range([0, width])
-        let y = d3.scaleLog().domain([10, 150]).range([height, 0])
-        
-        d3.select("#fuel_eff").append("g")
-        .attr("transform", `translate(${margin},${margin})`)
-        .selectAll("circle").data(data).enter().append("circle")
-        .attr("cx",function(d, i){return x(d.AverageCityMPG)})
-        .attr("cy",function(d, i){return y(d.AverageHighwayMPG)})
-        .attr("r",function(d, i){return Number(d.EngineCylinders) + 2})
-
-        d3.select("#fuel_eff").append("g")
-        .attr("transform",`translate(${margin},${margin})`)
-        .call(d3.axisLeft(y).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
-
-        d3.select("#fuel_eff").append("g")
-        .attr("transform",`translate(${margin},${height+margin})`)
-        .call(d3.axisBottom(x).tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
+        load_my_car_scatter()
+        load_my_car_hist()
       }
       async function load_flower() {
         // set the dimensions and margins of the graph
-        var margin = {top: 10, right: 30, bottom: 40, left: 50},
+        let margin = {top: 10, right: 30, bottom: 40, left: 50},
             width = 520 - margin.left - margin.right,
             height = 520 - margin.top - margin.bottom;
         
         // append the svg object to the body of the page
-        var Svg = d3.select("#my_dataviz")
+        let Svg = d3.select("#my_dataviz")
           .append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
           .append("g")
             .attr("transform",
                   "translate(" + margin.left + "," + margin.top + ")")
-        
-        
-        
         //Read the data
         let data = await d3.csv("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/iris.csv")
-      
         // Add X axis
-        var x = d3.scaleLinear()
+        let x = d3.scaleLinear()
           .domain([4*0.95, 8*1.001])
           .range([ 0, width ])
         Svg.append("g")
           .attr("transform", "translate(0," + height + ")")
           .call(d3.axisBottom(x).tickSize(-height*1.3).ticks(10))
           .select(".domain").remove()
-      
         // Add Y axis
-        var y = d3.scaleLinear()
+        let y = d3.scaleLinear()
           .domain([-0.001, 9*1.01])
           .range([ height, 0])
           .nice()
         Svg.append("g")
           .call(d3.axisLeft(y).tickSize(-width*1.3).ticks(7))
           .select(".domain").remove()
-      
         // Customization
         Svg.selectAll(".tick line").attr("stroke", "#EBEBEB")
-      
         // Add X axis label:
         Svg.append("text")
             .attr("text-anchor", "end")
             .attr("x", width)
             .attr("y", height + margin.top + 20)
             .text("Sepal Length");
-      
         // Y axis label:
         Svg.append("text")
             .attr("text-anchor", "end")
@@ -95,12 +64,10 @@
             .attr("y", -margin.left+20)
             .attr("x", -margin.top)
             .text("Petal Length")
-      
         // Color scale: give me a specie name, I return a color
-        var color = d3.scaleOrdinal()
+        let color = d3.scaleOrdinal()
           .domain(["setosa", "versicolor", "virginica" ])
           .range([ "#402D54", "#D18975", "#8FD175"])
-      
         // Add dots
         Svg.append('g')
           .selectAll("dot")
@@ -112,28 +79,118 @@
             .attr("r", 5)
             .style("fill", function (d) { return color(d.Species) } )
       }
-      async function load_my_car() {
-        let data = await d3.csv("my_auto_mpg.csv")
-        let margin = 50
-        let width = 200
-        let height = 200
-        let x = d3.scaleLinear().domain([0, 250]).range([0, width])
-        let y = d3.scaleLinear().domain([0, 60]).range([height, 0])
-        
-        d3.select("#my_car").append("g")
-        .attr("transform", `translate(${margin},${margin})`)
-        .selectAll("circle").data(data).enter().append("circle")
-        .attr("cx",function(d, i){return x(d.horsepower)})
-        .attr("cy",function(d, i){return y(d.mpg)})
-        .attr("r",function(d, i){return Number(d.cylinders) + 2})
+      async function load_my_car_scatter() {
+        d3.csv("my_auto_mpg.csv", function (data) {
+          //console.log(data)
+          let makers = new Map()
+          let year_data = new Map()
+          for (let row of data) {
+            let maker = row.car_name.split(' ')[0]
+            if (!makers.has(maker)) {
+              makers.set(maker, 1)
+            } else {
+              makers.set(maker, makers.get(maker) + 1)
+            }
+            if (isNaN(row.model_year)) {
+              console.log(`${row.model_year} is not a year!`)
+            }
+            let num_year = 1900 + Number(row.model_year)
+            if (!isNaN(row.horsepower) && !isNaN(row.mpg)) {
+              if (!year_data.has(num_year)) {
+                year_data.set(num_year, [row])
+              } else {
+                year_data.get(num_year).push(row)
+              }
+            }
+          }
+          for (let [year, rows] of year_data) {
+            //console.log(`year ${year} has ${rows.length} rows`)
+          }
+          //console.log(year_data)
+          console.log(makers)
+          // set the dimensions and margins of the graph
+          let margin = {top: 10, right: 30, bottom: 40, left: 50}
+          let svg_width = 500
+          let svg_height = 400
+          let width = svg_width - margin.left - margin.right
+          let height = svg_height - margin.top - margin.bottom
+          let svg = d3.select("#my_car")
+            .attr("width", svg_width + 'px')
+            .attr("height", svg_height + 'px')
+            .append("g")
+            .attr("transform",`translate(${margin.left},${margin.top})`)
+          // x axis
+          var x = d3.scaleLinear()
+            .domain([0, 250])
+            .range([0, width])
+          svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x))//.tickSize(-height*1.3).ticks(10))
+          // y axis
+          var y = d3.scaleLinear()
+            .domain([0, 60])
+            .range([height, 0])
+            //.nice()
+          svg.append("g")
+            .call(d3.axisLeft(y))//.tickSize(-width*1.3).ticks(7))
+          // x axis label
+          svg.append("text")
+            .attr("text-anchor", "end")
+            .attr("x", width)
+            .attr("y", height + margin.top + 20)
+            .text("Horsepower");
+          // y axis label
+          svg.append("text")
+            .attr("text-anchor", "end")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -margin.left + 20)
+            .attr("x", -margin.top)
+            .text("MPG")        
+          // legend
+          let legend_data = [
+            {name: "variable A", color: "#69b3a2"},
+            {name: "variable B", color: "#404080"}
+          ]
+          for (let i = 0; i < legend_data.length; i++) {
+            let entry =  legend_data[i]
+            let x_start = width - 100
+            let y_start = 20 * i + 30
+            svg.append("circle").attr("class", "legend").attr("cx", x_start).attr("cy", y_start).attr("r", 6).style("fill", entry.color)
+            svg.append("text").attr("x", x_start + 20).attr("y", y_start).text(entry.name).style("font-size", "15px").attr("alignment-baseline","middle")
+          }
+          
 
-        d3.select("#my_car").append("g")
-        .attr("transform",`translate(${margin},${margin})`)
-        .call(d3.axisLeft(y))//.tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
+          let dt = 2000
+          function animate_years() {
+            let years = Array.from(year_data.keys())
+            function plot_year(i) {
+              console.log(`plotting year ${years[i]}`)
+              if (i == 0) {
+                svg.selectAll("circle.data").data(year_data.get(years[i])).enter().append("circle")
+                .attr("class", "data")
+                .attr("cx",function(d, i){return x(d.horsepower)})
+                .attr("cy",function(d, i){return y(d.mpg)})
+                .attr("r",function(d, i){return Number(d.cylinders) + 2})
+              } else {
+                svg.selectAll("circle.data").data(year_data.get(years[i])).transition().duration(500)//.append("circle")
+                //.attr("class", "data")
+                .attr("cx",function(d, i){return x(d.horsepower)})
+                .attr("cy",function(d, i){return y(d.mpg)})
+                .attr("r",function(d, i){return Number(d.cylinders) + 2})
+              }
+              if (i < years.length - 2) {
+                setTimeout(plot_year, 1000, i + 1)
+              } else {
+                console.log('end of plotting')
+              }
+            }
+            plot_year(0)
+          }
+          animate_years()
+        }
+      )}
+      function load_my_car_hist() {
 
-        d3.select("#my_car").append("g")
-        .attr("transform",`translate(${margin},${height+margin})`)
-        .call(d3.axisBottom(x))//.tickValues([10,20,50,100]).tickFormat(d3.format("~s")))
       }
     </script>
   </body>
