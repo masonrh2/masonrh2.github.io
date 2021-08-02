@@ -11,12 +11,14 @@
     <div id="main_plot_page" class="page" style="display: block;">
       <div class="info">
         <div class="upper_info">
-          <div class="header">main_plot_page</div>
+          <div class="header">Introduction</div>
           <p class="info_text">
-            this is ... intro<br>
-            Click the "Start Animation" button to begin.
+            This narrative visualization explores the tradeoff between fuel efficiency (mileage) and performance (horsepower) of cars in the 70s and 80s. Click the "Start Animation" button to begin.
+            <br><br>
+            <button onclick="startMainAnimation()" style="margin-left: 5px;">Start Animation</button>
+            <br><br>
+            Use the grey bar at the bottom of this window to navigate between slides once the animation has completed. Click the "Start Animation" button again to reset the animation.
           </p>
-          <button onclick="startMainAnimation()" style="margin-left: 5px;">Start Animation</button>
         </div>
         <div class="lower_info">
           <button id="main_next_button" onclick="switchPage('mpg_line_page'); load_mpg_line()" style="display: none; margin-right: 10px;">Next</button>
@@ -28,14 +30,17 @@
     <div id="mpg_line_page" class="page" style="display: none;">
       <div class="info">
         <div class="upper_info">
-          <div class="header">mpg_line_page</div>
+          <div class="header">Milage from '70 to '82</div>
           <p class="info_text">
-            We clearly see an improvement in mileage from 1970 to 1982, however, the relationship between horsepower and mileage is quite complicated...
-            Click one of the buttons below to explore this relationship further.
+            We clearly see an improvement in mileage from 1970 to 1982.
+            <br><br>
+            There seems to be an inverse relationship between fuel efficiency (milage) and performance (horsepower). However, many other parameters which influence these values; for example, a heavier vehicle requires a larger engine which consumes more fuel.
+            <br><br>
+            Click one of the buttons below to explore how other parameters affect the mileage and horsepower of vehicles.
           </p>
         </div>
         <div class="lower_info">
-          <button onclick="switchPage('main_plot_page')" style="margin-right: 10px;">Back</button>
+          <button onclick="switchPage('main_plot_page'); setBlack()" style="margin-right: 10px;">Back</button>
           <button onclick="switchPage('maker_page'); load_maker()" style="margin-right: 10px;">Makers</button>
           <button onclick="switchPage('weight_page'); load_weight()" style="margin-right: 10px;">Weight</button>
           <button onclick="switchPage('cylinder_page'); load_cylinder()" style="margin-right: 10px;">Cylinders</button>
@@ -47,9 +52,11 @@
     <div id="maker_page" class="page" style="display: none;">
       <div class="info">
         <div class="upper_info">
-          <div class="header">maker_page</div>
+          <div class="header">Car Manufacturers</div>
           <p class="info_text">
-            paragraph text
+            Some makers are focused on a particular type of vehicle (small and fuel efficient vs high performance) while others produce a wide range of vehicles.
+            <br><br>
+            Hover your mouse over a data point to highlight all other points in that subcategory.
           </p>
         </div>
         <div class="lower_info">
@@ -62,9 +69,11 @@
     <div id="weight_page" class="page" style="display: none;">
       <div class="info">
         <div class="upper_info">
-          <div class="header">weight_page</div>
+          <div class="header">Vehicle Weight</div>
           <p class="info_text">
-            paragraph text
+            There is clearly a correlation between vehicle weight and both mileage and horsepower. Lighter cars can get away with smaller engines that require less fuel, while heavier vehicles requrie large engines that consume more fuel.
+            <br><br>
+            Hover your mouse over a data point to highlight all other points in that subcategory.
           </p>
         </div>
         <div class="lower_info">
@@ -76,9 +85,11 @@
     <div id="cylinder_page" class="page" style="display: none;">
       <div class="info">
         <div class="upper_info">
-          <div class="header">cylinder_page</div>
+          <div class="header">Number of Cylinders</div>
           <p class="info_text">
-            paragraph text
+            There is clearly a correlation between vehicle weight and both mileage and horsepower. Larger engines with more displacement consume more fuel. Three- and five-cylinder engines (cylinders are inline) are uncommon today.
+            <br><br>
+            Hover your mouse over a data point to highlight all other points in that subcategory.
           </p>
         </div>
         <div class="lower_info">
@@ -124,6 +135,10 @@
           }
         }
       }
+      
+      function setBlack () {
+        d3.select("#main_plot").selectAll('circle.data').style("fill", '#000000')
+      }
 
       function sort_by_second(a, b) {
         if (a[1] < b[1]) {
@@ -145,6 +160,7 @@
           let makers = new Map()
           let year_data = new Map()
           let all_good_data = []
+          let data_by_maker = new Map()
           for (let row of data) {
             let maker = row.car_name.split(' ')[0]
             row.maker = maker
@@ -163,9 +179,15 @@
               } else {
                 year_data.get(num_year).push(row)
               }
+              if (!data_by_maker.has(maker)) {
+                data_by_maker.set(maker, [row])
+              } else {
+                data_by_maker.get(maker).push(row)
+              }
               all_good_data.push(row)
             }
           }
+          console.log(data_by_maker)
           let year_averages = {mpg: new Map(), horsepower: new Map()}
           for (let [year, rows] of year_data) {
             let avg_mpg = 0;
@@ -232,7 +254,7 @@
         let width = svg_width - margin.left - margin.right
         let height = svg_height - margin.top - margin.bottom
         document.getElementById('main_plot').innerHTML = ""
-        let svg = d3.select("#main_plot")
+        let main_svg = d3.select("#main_plot")
           .attr("width", svg_width + 'px')
           .attr("height", svg_height + 'px')
           .append("g")
@@ -241,7 +263,7 @@
         var x = d3.scaleLinear()
           .domain([0, 300])
           .range([0, width])
-        svg.append("g")
+        main_svg.append("g")
           .attr("transform", `translate(0,${height})`)
           .call(d3.axisBottom(x))//.tickSize(-height*1.3).ticks(10))
         // y axis
@@ -249,44 +271,44 @@
           .domain([0, 60])
           .range([height, 0])
           //.nice()
-        svg.append("g")
+        main_svg.append("g")
           .call(d3.axisLeft(y))//.tickSize(-width*1.3).ticks(7))
         // x axis label
-        svg.append("text")
+        main_svg.append("text")
           .attr("text-anchor", "end")
           .attr("x", width)
           .attr("y", height + margin.top + 10)
           .text("Horsepower");
         // y axis label
-        svg.append("text")
+        main_svg.append("text")
           .attr("text-anchor", "end")
           .attr("transform", "rotate(-90)")
           .attr("y", -margin.left + 20)
           .attr("x", -margin.top+30)
           .text("MPG")        
-        let dt = 200
+        let dt = 100//3000
         function animate_years() {
           let years = Array.from(main_plot.year_data.keys())
           function plot_year(i) {
             let year = years[i]
             //console.log(`plotting year ${year}`)
             if (i == 0) {
-              svg.selectAll("circle.data").data(main_plot.year_data.get(year)).enter().append("circle")
+              main_svg.selectAll("circle.data").data(main_plot.year_data.get(year)).enter().append("circle")
               .attr("class", "data")
               .attr("cx",function(d, i){return x(d.horsepower)})
               .attr("cy",function(d, i){return y(d.mpg)})
               .attr("r", 4)
               //.style("fill", function(d, i){return main_plot.maker_legend_colors[d.maker]})
             } else {
-              svg.selectAll("circle.data").data(main_plot.year_data.get(year)).transition().duration(100)//.append("circle")
+              main_svg.selectAll("circle.data").data(main_plot.year_data.get(year)).transition().duration(50)//1500)//.append("circle")
               //.attr("class", "data")
               .attr("cx",function(d, i){return x(d.horsepower)})
               .attr("cy",function(d, i){return y(d.mpg)})
               .attr("r", 4)
               //.style("fill", function(d, i){return main_plot.maker_legend_colors[d.maker]})
             }
-            svg.selectAll("text.year_label").remove()
-            svg.append("text")
+            main_svg.selectAll("text.year_label").remove()
+            main_svg.append("text")
               .attr("class", "year_label")
               .attr("text-anchor", "start")
               .attr("x", 200)
@@ -314,8 +336,8 @@
               .notePadding(15)
               .type(type)
               .annotations(annotations)
-            svg.selectAll("g.annotation-group").remove()
-            svg.append("g")
+            main_svg.selectAll("g.annotation-group").remove()
+            main_svg.append("g")
               .attr("class", "annotation-group")
               .call(makeAnnotations)
 
@@ -459,7 +481,6 @@
             svg.select("text.maker_label")
               .text(`Maker: ${selected_maker}`)
           }
-        // Highlight the specie that is hovered
         let doNotHighlight = function(d) {
           d3.selectAll("circle.data")
             .transition()
@@ -470,6 +491,51 @@
           svg.select("text.maker_label")
             .text('')
         }
+        const annotations = [
+            {
+              note: {
+                title: "volkswagen",
+                //label: 'text'
+              },
+              //can use x, y directly instead of data
+              x: 71,
+              y: 129,
+              dx: 60,
+              dy: -20,
+              subject: {
+                width: 73,
+                height: 208
+              },
+              color: main_plot.maker_legend_colors['volkswagen']
+            },
+            {
+              note: {
+                title: "ford",
+                //label: 'text'
+              },
+              //can use x, y directly instead of data
+              x: 102,
+              y: 196,
+              dx: 200,
+              dy: -20,
+              subject: {
+                width: 282,
+                height: 248
+              },
+              color: main_plot.maker_legend_colors['ford']
+            }
+          ]
+          const makeAnnotations = d3.annotation()
+            //.editMode(true)  
+            //also can set and override in the note.padding property
+            //of the annotation object
+            .notePadding(15)
+            .type(d3.annotationCalloutRect)
+            .annotations(annotations)
+          svg.selectAll("g.annotation-group").remove()
+          svg.append("g")
+            .attr("class", "annotation-group")
+            .call(makeAnnotations)
 
         svg.selectAll("circle.data").data(data).enter().append("circle")
           .attr("class", "data")
@@ -594,7 +660,6 @@
               .text(`Maker: ${selected_maker}`)
             */
           }
-        // Highlight the specie that is hovered
         let doNotHighlight = function(d) {
           d3.selectAll("circle.data")
             .transition()
@@ -603,6 +668,42 @@
             .style("opacity", 1.0)
             .attr("r", 4 )
         }
+
+        const annotations = [
+            {
+              note: {
+                title: "datsun 280-zx '80",
+                label: '132 HP\n32.7 MPG\n2910 lb'
+              },
+              //can use x, y directly instead of data
+              x: 229,
+              y: 237,
+              dx: 50,
+              dy: -50
+            },
+            {
+              note: {
+                title: "buick estate wagon (sw) '70",
+                label: '225 HP\n14.0 MPG\n3086 lb'
+              },
+              //can use x, y directly instead of data
+              x: 390,
+              y: 399,
+              dx: 30,
+              dy: -50
+            }
+          ]
+          const makeAnnotations = d3.annotation()
+            //.editMode(true)  
+            //also can set and override in the note.padding property
+            //of the annotation object
+            .notePadding(15)
+            .type(d3.annotationCalloutElbow)
+            .annotations(annotations)
+          svg.selectAll("g.annotation-group").remove()
+          svg.append("g")
+            .attr("class", "annotation-group")
+            .call(makeAnnotations)
 
         svg.selectAll("circle.data").data(data).enter().append("circle")
           .attr("class", "data")
@@ -703,7 +804,6 @@
               .text(`Maker: ${selected_maker}`)
             */
           }
-        // Highlight the specie that is hovered
         let doNotHighlight = function(d) {
           d3.selectAll("circle.data")
             .transition()
@@ -712,6 +812,61 @@
             .style("opacity", 1.0)
             .attr("r", 4 )
         }
+
+        const annotations1 = [
+            {
+              note: {
+                title: "oldsmobile cutlass ciera (diesel) '82",
+                label: '85 HP\n38.0 MPG\n3015 lb'
+              },
+              //can use x, y directly instead of data
+              x: 147,
+              y: 191,
+              dx: 50,
+              dy: -50
+            }
+          ]
+          const makeAnnotations1 = d3.annotation()
+            //.editMode(true)  
+            //also can set and override in the note.padding property
+            //of the annotation object
+            .notePadding(15)
+            .type(d3.annotationCalloutElbow)
+            .annotations(annotations1)
+          svg.selectAll("g.annotation-group").remove()
+          svg.append("g")
+            .attr("class", "annotation-group")
+            .call(makeAnnotations1)
+
+            const annotations2 = [
+            {
+              note: {
+                title: "3 cylinder",
+                //label: 'text'
+              },
+              //can use x, y directly instead of data
+              x: 141,
+              y: 302,
+              dx: -40,
+              dy: 114,
+              subject: {
+                width: 64,
+                height: 74
+              },
+              color: color_map.get(3)
+            }
+          ]
+          const makeAnnotations2 = d3.annotation()
+            //.editMode(true)  
+            //also can set and override in the note.padding property
+            //of the annotation object
+            .notePadding(15)
+            .type(d3.annotationCalloutRect)
+            .annotations(annotations2)
+          //svg.selectAll("g.annotation-group").remove()
+          svg.append("g")
+            .attr("class", "annotation-group")
+            .call(makeAnnotations2)
 
         svg.selectAll("circle.data").data(data).enter().append("circle")
           .attr("class", "data")
