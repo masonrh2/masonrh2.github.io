@@ -1,3 +1,46 @@
 circle.data {
   fill: black;
 }
+div.page {
+  width: 1000px;
+  height: 600px;
+  border: 2px solid black;
+}
+div.info{
+  width: 398px;
+  height: 100%;
+  float:left;
+}
+div.upper_info {
+  width: 400px;
+  height: 95%;
+}
+div.lower_info {
+  width: 400px;
+  height: 5%;
+  display: flex;
+  align-items: center;
+  background-color: lightgray;
+  justify-content:flex-end;
+}
+svg.plot {
+  width: 600px;
+  height: 600px;
+  float:right;
+  border-left: 2px solid black;;
+}
+div.header {
+  font-size: x-large;
+  font-weight: bold;
+  padding: 5px;
+}
+p.info_text {
+  padding: 5px;
+}
+text.year_label {
+  font-size: x-large;
+}
+text.maker_label {
+  font-size: x-large;
+  font-weight: bold;
+}

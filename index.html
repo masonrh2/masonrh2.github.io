@@ -3,89 +3,151 @@
   <head>
     <meta charset="UTF-8">
     <title>Narrative Visualization</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="d3-annotation.js"></script>
     <link rel="stylesheet" href="style.css">
   </head>
   <body onload="init()">
-    <svg id="my_car"></svg>
-    <svg id="fuel_eff" width=300 height=300></svg>
-    <div id="my_dataviz"></div>
+    <div id="main_plot_page" class="page" style="display: block;">
+      <div class="info">
+        <div class="upper_info">
+          <div class="header">main_plot_page</div>
+          <p class="info_text">
+            this is ... intro<br>
+            Click the "Start Animation" button to begin.
+          </p>
+          <button onclick="startMainAnimation()" style="margin-left: 5px;">Start Animation</button>
+        </div>
+        <div class="lower_info">
+          <button id="main_next_button" onclick="switchPage('mpg_line_page'); load_mpg_line()" style="display: none; margin-right: 10px;">Next</button>
+        </div>
+      </div>
+      <svg class="plot" id="main_plot"></svg>
+    </div>
+
+    <div id="mpg_line_page" class="page" style="display: none;">
+      <div class="info">
+        <div class="upper_info">
+          <div class="header">mpg_line_page</div>
+          <p class="info_text">
+            We clearly see an improvement in mileage from 1970 to 1982, however, the relationship between horsepower and mileage is quite complicated...
+            Click one of the buttons below to explore this relationship further.
+          </p>
+        </div>
+        <div class="lower_info">
+          <button onclick="switchPage('main_plot_page')" style="margin-right: 10px;">Back</button>
+          <button onclick="switchPage('maker_page'); load_maker()" style="margin-right: 10px;">Makers</button>
+          <button onclick="switchPage('weight_page'); load_weight()" style="margin-right: 10px;">Weight</button>
+          <button onclick="switchPage('cylinder_page'); load_cylinder()" style="margin-right: 10px;">Cylinders</button>
+        </div>
+      </div>
+      <svg class="plot" id="mpg_line_plot"></svg>
+    </div>
+
+    <div id="maker_page" class="page" style="display: none;">
+      <div class="info">
+        <div class="upper_info">
+          <div class="header">maker_page</div>
+          <p class="info_text">
+            paragraph text
+          </p>
+        </div>
+        <div class="lower_info">
+          <button onclick="switchPage('mpg_line_page')" style="margin-right: 10px;">Back</button>
+        </div>
+      </div>
+      <svg class="plot" id="maker_plot"></svg>
+    </div>
+    
+    <div id="weight_page" class="page" style="display: none;">
+      <div class="info">
+        <div class="upper_info">
+          <div class="header">weight_page</div>
+          <p class="info_text">
+            paragraph text
+          </p>
+        </div>
+        <div class="lower_info">
+          <button onclick="switchPage('mpg_line_page')" style="margin-right: 10px;">Back</button>
+        </div>
+      </div>
+      <svg class="plot" id="weight_plot"></svg>
+    </div>
+    <div id="cylinder_page" class="page" style="display: none;">
+      <div class="info">
+        <div class="upper_info">
+          <div class="header">cylinder_page</div>
+          <p class="info_text">
+            paragraph text
+          </p>
+        </div>
+        <div class="lower_info">
+          <button onclick="switchPage('mpg_line_page')" style="margin-right: 10px;">Back</button>
+        </div>
+      </div>
+      <svg class="plot" id="cylinder_plot"></svg>
+    </div>
     <script>
+      const kelly_colors = [
+        '#ebce2b', // vivid_yellow
+        '#702c8c', // strong_purple
+        '#db6917', // vivid_orange
+        '#96cde6', // very_light_blue
+        '#ba1c30', // vivid_red
+        '#c0bd7f', // grayish_yellow
+        '#7f7e80', // medium_gray
+        '#5fa641', // vivid_green
+        '#d485b2', // strong_purplish_pink
+        '#4277b6', // strong_blue
+        '#df8461', // strong_yellowish_pink
+        '#463397', // strong_violet
+        '#e1a11a', // vivid_orange_yellow
+        '#91218c', // strong_purplish_red
+        '#e8e948', // vivid_greenish_yellow
+        '#7e1510', // strong_reddish_brown
+        '#92ae31', // vivid_yellowish_green
+        '#6f340d', // deep_yellowish_brown
+        '#d32b1e', // vivid_reddish_orange
+        '#2b3514', // dark_olive_green
+      ]
+      const pages = ['main_plot_page', 'mpg_line_page', 'maker_page', 'weight_page', 'cylinder_page']
+      const svgs = ['main_plot', 'mpg_line_plot', 'maker_plot', 'weight_plot', 'cylinder_plot']
+      function switchPage(page_id) {
+        for (let i = 0 ; i < pages.length; i++) {
+          let page = pages[i]
+          if (page !== page_id) {
+            document.getElementById(page).style.display = "none"
+            document.getElementById(svgs[i]).hidden = true
+          } else {
+            document.getElementById(page_id).style.display = "block"
+            document.getElementById(svgs[i]).hidden = false
+          }
+        }
+      }
+
+      function sort_by_second(a, b) {
+        if (a[1] < b[1]) {
+          return 1
+        } else if (a[1] > b[1]) {
+          return -1
+        } else {
+          return 0
+        }
+      }
       function init () {
-        load_flower()
-        load_my_car_scatter()
-        load_my_car_hist()
+        load_main_plot_scatter()
+        //setTimeout(() => load_mpg_line(), 1000)
       }
-      async function load_flower() {
-        // set the dimensions and margins of the graph
-        let margin = {top: 10, right: 30, bottom: 40, left: 50},
-            width = 520 - margin.left - margin.right,
-            height = 520 - margin.top - margin.bottom;
-        
-        // append the svg object to the body of the page
-        let Svg = d3.select("#my_dataviz")
-          .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-          .append("g")
-            .attr("transform",
-                  "translate(" + margin.left + "," + margin.top + ")")
-        //Read the data
-        let data = await d3.csv("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/iris.csv")
-        // Add X axis
-        let x = d3.scaleLinear()
-          .domain([4*0.95, 8*1.001])
-          .range([ 0, width ])
-        Svg.append("g")
-          .attr("transform", "translate(0," + height + ")")
-          .call(d3.axisBottom(x).tickSize(-height*1.3).ticks(10))
-          .select(".domain").remove()
-        // Add Y axis
-        let y = d3.scaleLinear()
-          .domain([-0.001, 9*1.01])
-          .range([ height, 0])
-          .nice()
-        Svg.append("g")
-          .call(d3.axisLeft(y).tickSize(-width*1.3).ticks(7))
-          .select(".domain").remove()
-        // Customization
-        Svg.selectAll(".tick line").attr("stroke", "#EBEBEB")
-        // Add X axis label:
-        Svg.append("text")
-            .attr("text-anchor", "end")
-            .attr("x", width)
-            .attr("y", height + margin.top + 20)
-            .text("Sepal Length");
-        // Y axis label:
-        Svg.append("text")
-            .attr("text-anchor", "end")
-            .attr("transform", "rotate(-90)")
-            .attr("y", -margin.left+20)
-            .attr("x", -margin.top)
-            .text("Petal Length")
-        // Color scale: give me a specie name, I return a color
-        let color = d3.scaleOrdinal()
-          .domain(["setosa", "versicolor", "virginica" ])
-          .range([ "#402D54", "#D18975", "#8FD175"])
-        // Add dots
-        Svg.append('g')
-          .selectAll("dot")
-          .data(data)
-          .enter()
-          .append("circle")
-            .attr("cx", function (d) { return x(d.Sepal_Length); } )
-            .attr("cy", function (d) { return y(d.Petal_Length); } )
-            .attr("r", 5)
-            .style("fill", function (d) { return color(d.Species) } )
-      }
-      async function load_my_car_scatter() {
+      let main_plot = {}
+      function load_main_plot_scatter() {
         d3.csv("my_auto_mpg.csv", function (data) {
           //console.log(data)
           let makers = new Map()
           let year_data = new Map()
+          let all_good_data = []
           for (let row of data) {
             let maker = row.car_name.split(' ')[0]
+            row.maker = maker
             if (!makers.has(maker)) {
               makers.set(maker, 1)
             } else {
@@ -101,96 +163,564 @@
               } else {
                 year_data.get(num_year).push(row)
               }
+              all_good_data.push(row)
             }
           }
+          let year_averages = {mpg: new Map(), horsepower: new Map()}
           for (let [year, rows] of year_data) {
-            //console.log(`year ${year} has ${rows.length} rows`)
-          }
-          //console.log(year_data)
-          console.log(makers)
-          // set the dimensions and margins of the graph
-          let margin = {top: 10, right: 30, bottom: 40, left: 50}
-          let svg_width = 500
-          let svg_height = 400
-          let width = svg_width - margin.left - margin.right
-          let height = svg_height - margin.top - margin.bottom
-          let svg = d3.select("#my_car")
-            .attr("width", svg_width + 'px')
-            .attr("height", svg_height + 'px')
-            .append("g")
-            .attr("transform",`translate(${margin.left},${margin.top})`)
-          // x axis
-          var x = d3.scaleLinear()
-            .domain([0, 250])
-            .range([0, width])
-          svg.append("g")
-            .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x))//.tickSize(-height*1.3).ticks(10))
-          // y axis
-          var y = d3.scaleLinear()
-            .domain([0, 60])
-            .range([height, 0])
-            //.nice()
-          svg.append("g")
-            .call(d3.axisLeft(y))//.tickSize(-width*1.3).ticks(7))
-          // x axis label
-          svg.append("text")
-            .attr("text-anchor", "end")
-            .attr("x", width)
-            .attr("y", height + margin.top + 20)
-            .text("Horsepower");
-          // y axis label
-          svg.append("text")
-            .attr("text-anchor", "end")
-            .attr("transform", "rotate(-90)")
-            .attr("y", -margin.left + 20)
-            .attr("x", -margin.top)
-            .text("MPG")        
-          // legend
-          let legend_data = [
-            {name: "variable A", color: "#69b3a2"},
-            {name: "variable B", color: "#404080"}
-          ]
-          for (let i = 0; i < legend_data.length; i++) {
-            let entry =  legend_data[i]
-            let x_start = width - 100
-            let y_start = 20 * i + 30
-            svg.append("circle").attr("class", "legend").attr("cx", x_start).attr("cy", y_start).attr("r", 6).style("fill", entry.color)
-            svg.append("text").attr("x", x_start + 20).attr("y", y_start).text(entry.name).style("font-size", "15px").attr("alignment-baseline","middle")
-          }
-          
-
-          let dt = 2000
-          function animate_years() {
-            let years = Array.from(year_data.keys())
-            function plot_year(i) {
-              console.log(`plotting year ${years[i]}`)
-              if (i == 0) {
-                svg.selectAll("circle.data").data(year_data.get(years[i])).enter().append("circle")
-                .attr("class", "data")
-                .attr("cx",function(d, i){return x(d.horsepower)})
-                .attr("cy",function(d, i){return y(d.mpg)})
-                .attr("r",function(d, i){return Number(d.cylinders) + 2})
-              } else {
-                svg.selectAll("circle.data").data(year_data.get(years[i])).transition().duration(500)//.append("circle")
-                //.attr("class", "data")
-                .attr("cx",function(d, i){return x(d.horsepower)})
-                .attr("cy",function(d, i){return y(d.mpg)})
-                .attr("r",function(d, i){return Number(d.cylinders) + 2})
-              }
-              if (i < years.length - 2) {
-                setTimeout(plot_year, 1000, i + 1)
-              } else {
-                console.log('end of plotting')
+            let avg_mpg = 0;
+            let avg_horsepower = 0;
+            let count = 0
+            for (let row of rows) {
+              if (!isNaN(row.horsepower) && !isNaN(row.mpg)) {
+                avg_mpg += Number(row.mpg)
+                avg_horsepower += Number(row.horsepower)
+                count++
               }
             }
-            plot_year(0)
+            avg_mpg = avg_mpg / count
+            avg_horsepower = avg_horsepower / count
+            year_averages.mpg.set(year, avg_mpg)
+            year_averages.horsepower.set(year, avg_horsepower)
           }
-          animate_years()
-        }
-      )}
-      function load_my_car_hist() {
+          //console.log(year_averages)
+          main_plot.year_averages = year_averages
+          main_plot.year_data = year_data
+          main_plot.all_good_data = all_good_data
+          //console.log(makers)
+          let sorted_makers = []
+          for (let [maker, count] of makers) {
+            sorted_makers.push([maker, count])
+          }
+          sorted_makers.sort(sort_by_second)
+          //console.log(sorted_makers)
+          let legend_max = 12
+          let legend_makers = []
+          let maker_legend_colors = {}
+          for (let pair of sorted_makers) {
+            if (legend_makers.length < legend_max) {
+              legend_makers.push(pair[0])
+            } else {
+              break
+            }
+          }
+          if (sorted_makers.length > legend_max) { legend_makers.push('other') }
+          //console.log(legend_makers)
+          let maker_legend_data = []
+          for (let i = 0; i < legend_makers.length; i++) {
+            let maker = legend_makers[i]
+            let color = kelly_colors[i]
+            maker_legend_data.push({name: maker, color})
+            if (maker !== 'other') { maker_legend_colors[maker] = kelly_colors[i] }
+          }
+          main_plot.maker_legend_data = maker_legend_data
+          // set colors for "other" makers
+          let other_color = maker_legend_data[maker_legend_data.length - 1].color
+          for (let i = legend_max; i < sorted_makers.length; i++) {
+            maker_legend_colors[sorted_makers[i][0]] = other_color
+          }
+          main_plot.maker_legend_colors = maker_legend_colors
+          //console.log(maker_legend_colors)
+        })
+      }
 
+      function startMainAnimation() {
+        // set the dimensions and margins of the graph
+        let margin = {top: 30, right: 30, bottom: 50, left: 50}
+        let svg_width = 600
+        let svg_height = 600
+        let width = svg_width - margin.left - margin.right
+        let height = svg_height - margin.top - margin.bottom
+        document.getElementById('main_plot').innerHTML = ""
+        let svg = d3.select("#main_plot")
+          .attr("width", svg_width + 'px')
+          .attr("height", svg_height + 'px')
+          .append("g")
+          .attr("transform",`translate(${margin.left},${margin.top})`)
+        // x axis
+        var x = d3.scaleLinear()
+          .domain([0, 300])
+          .range([0, width])
+        svg.append("g")
+          .attr("transform", `translate(0,${height})`)
+          .call(d3.axisBottom(x))//.tickSize(-height*1.3).ticks(10))
+        // y axis
+        var y = d3.scaleLinear()
+          .domain([0, 60])
+          .range([height, 0])
+          //.nice()
+        svg.append("g")
+          .call(d3.axisLeft(y))//.tickSize(-width*1.3).ticks(7))
+        // x axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width)
+          .attr("y", height + margin.top + 10)
+          .text("Horsepower");
+        // y axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-90)")
+          .attr("y", -margin.left + 20)
+          .attr("x", -margin.top+30)
+          .text("MPG")        
+        let dt = 200
+        function animate_years() {
+          let years = Array.from(main_plot.year_data.keys())
+          function plot_year(i) {
+            let year = years[i]
+            //console.log(`plotting year ${year}`)
+            if (i == 0) {
+              svg.selectAll("circle.data").data(main_plot.year_data.get(year)).enter().append("circle")
+              .attr("class", "data")
+              .attr("cx",function(d, i){return x(d.horsepower)})
+              .attr("cy",function(d, i){return y(d.mpg)})
+              .attr("r", 4)
+              //.style("fill", function(d, i){return main_plot.maker_legend_colors[d.maker]})
+            } else {
+              svg.selectAll("circle.data").data(main_plot.year_data.get(year)).transition().duration(100)//.append("circle")
+              //.attr("class", "data")
+              .attr("cx",function(d, i){return x(d.horsepower)})
+              .attr("cy",function(d, i){return y(d.mpg)})
+              .attr("r", 4)
+              //.style("fill", function(d, i){return main_plot.maker_legend_colors[d.maker]})
+            }
+            svg.selectAll("text.year_label").remove()
+            svg.append("text")
+              .attr("class", "year_label")
+              .attr("text-anchor", "start")
+              .attr("x", 200)
+              .attr("y", 20)
+              .text(`Year: ${year}`)
+            const type = d3.annotationXYThreshold
+            const annotations = [{
+              note: {
+                title: "Average MPG",
+                label: main_plot.year_averages.mpg.get(year).toFixed(3)
+              },
+              //can use x, y directly instead of data
+              x: 325,
+              y: y(main_plot.year_averages.mpg.get(year)),
+              dy: 450 - y(main_plot.year_averages.mpg.get(year)),
+              dx: 100,
+              subject: {
+                x1: 0,
+                x2: width
+              }
+            }]
+            const makeAnnotations = d3.annotation()
+              //also can set and override in the note.padding property
+              //of the annotation object
+              .notePadding(15)
+              .type(type)
+              .annotations(annotations)
+            svg.selectAll("g.annotation-group").remove()
+            svg.append("g")
+              .attr("class", "annotation-group")
+              .call(makeAnnotations)
+
+            if (i < years.length - 2) {
+              setTimeout(plot_year, dt, i + 1)
+            } else {
+              //console.log('end of plotting')
+              document.getElementById('main_next_button').style.display = 'inline'
+            }
+          }
+          plot_year(0)
+        }
+        animate_years()
+      }
+      let loaded_mpg_line = false
+      function load_mpg_line() {
+        if (loaded_mpg_line) { return }
+        loaded_mpg_line = true
+        let data = []
+        //console.log(main_plot.year_averages.mpg)
+        for (let [year, avg_mpg] of main_plot.year_averages.mpg) {
+          data.push({year, avg_mpg})
+        }
+        //console.log(data)
+        let margin = {top: 30, right: 30, bottom: 50, left: 50}
+        let svg_width = 600
+        let svg_height = 600
+        let width = svg_width - margin.left - margin.right
+        let height = svg_height - margin.top - margin.bottom
+        //document.getElementById('mpg_line_plot').innerHTML = ""
+        let svg = d3.select("#mpg_line_plot")
+          .attr("width", svg_width + 'px')
+          .attr("height", svg_height + 'px')
+          .append("g")
+          .attr("transform",`translate(${margin.left},${margin.top})`)
+        // x axis
+        var x = d3.scaleLinear()
+          .domain([1970, 1982])
+          .range([0, width])
+        svg.append("g")
+          .attr("transform", `translate(0,${height})`)
+          .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+        // y axis
+        var y = d3.scaleLinear()
+          .domain([10, 40])
+          .range([height, 0])
+          //.nice()
+        svg.append("g")
+          .call(d3.axisLeft(y))
+        // x axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width)
+          .attr("y", height + margin.top + 10)
+          .text("Year");
+        // y axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-90)")
+          .attr("y", -margin.left + 20)
+          .attr("x", -margin.top+30)
+          .text("Average MPG")
+        svg.append("path")
+          .datum(data)
+          .attr("fill", "none")
+          .attr("stroke", "steelblue")
+          .attr("stroke-width", 1.5)
+          .attr("d", d3.line()
+            .x(function(d) { return x(d.year) })
+            .y(function(d) { return y(d.avg_mpg) })
+          )
+      }
+
+      let loaded_maker = false
+      function load_maker() {
+        if (loaded_maker) { return }
+        loaded_maker = true
+        let margin = {top: 30, right: 30, bottom: 50, left: 50}
+        let svg_width = 600
+        let svg_height = 600
+        let width = svg_width - margin.left - margin.right
+        let height = svg_height - margin.top - margin.bottom
+        //document.getElementById('mpg_line_plot').innerHTML = ""
+        let svg = d3.select("#maker_plot")
+          .attr("width", svg_width + 'px')
+          .attr("height", svg_height + 'px')
+          .append("g")
+          .attr("transform",`translate(${margin.left},${margin.top})`)
+        // x axis
+        var x = d3.scaleLinear()
+          .domain([0, 300])
+          .range([0, width])
+        svg.append("g")
+          .attr("transform", `translate(0,${height})`)
+          .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+        // y axis
+        var y = d3.scaleLinear()
+          .domain([0, 60])
+          .range([height, 0])
+          //.nice()
+        svg.append("g")
+          .call(d3.axisLeft(y))
+        // x axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width)
+          .attr("y", height + margin.top + 10)
+          .text("Horsepower");
+        // y axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-90)")
+          .attr("y", -margin.left + 20)
+          .attr("x", -margin.top+30)
+          .text("Average MPG")
+        let data = main_plot.all_good_data
+        //console.log(data)
+        // legend
+        let y_max = 0
+        for (let i = 0; i < main_plot.maker_legend_data.length; i++) {
+          let entry =  main_plot.maker_legend_data[i]
+          let x_start = width - 80
+          let y_start = 20 * i + 10
+          y_max = y_start
+          svg.append("circle").attr("class", "legend").attr("cx", x_start).attr("cy", y_start).attr("r", 6).style("fill", entry.color)
+          svg.append("text").attr("x", x_start + 20).attr("y", y_start).text(entry.name).style("font-size", "15px").attr("alignment-baseline","middle")
+        }
+        let highlight = function(d) {
+          let selected_maker = d.maker
+          let color = main_plot.maker_legend_colors[selected_maker]
+            d3.selectAll("circle.data")
+              .transition()
+              .duration(200)
+              .style("opacity", 0.2)
+              .attr("r", 3)
+            d3.selectAll("circle.data").filter((d) => d.maker === selected_maker)
+              .transition()
+              .duration(200)
+              .style("opacity", 1.0)
+              .attr("r", 7)
+            svg.select("text.maker_label")
+              .text(`Maker: ${selected_maker}`)
+          }
+        // Highlight the specie that is hovered
+        let doNotHighlight = function(d) {
+          d3.selectAll("circle.data")
+            .transition()
+            .duration(200)
+            .style("fill", (d) => main_plot.maker_legend_colors[d.maker])
+            .style("opacity", 1.0)
+            .attr("r", 4 )
+          svg.select("text.maker_label")
+            .text('')
+        }
+
+        svg.selectAll("circle.data").data(data).enter().append("circle")
+          .attr("class", "data")
+          .attr("cx",function(d, i){return x(d.horsepower)})
+          .attr("cy",function(d, i){return y(d.mpg)})
+          .attr("r", 4)
+          .style("fill", function(d, i){return main_plot.maker_legend_colors[d.maker]})
+          .on("mouseover", highlight)
+          .on("mouseleave", doNotHighlight )
+        svg.append("text")
+          .attr("class", "maker_label")
+          .attr("text-anchor", "start")
+          .attr("x", 150)
+          .attr("y", 20)
+          .text('')
+      }
+
+      let loaded_weight = false
+      function load_weight() {
+        if (loaded_weight) { return }
+        loaded_weight = true
+        let margin = {top: 30, right: 30, bottom: 50, left: 50}
+        let svg_width = 600
+        let svg_height = 600
+        let width = svg_width - margin.left - margin.right
+        let height = svg_height - margin.top - margin.bottom
+        //document.getElementById('mpg_line_plot').innerHTML = ""
+        let svg = d3.select("#weight_plot")
+          .attr("width", svg_width + 'px')
+          .attr("height", svg_height + 'px')
+          .append("g")
+          .attr("transform",`translate(${margin.left},${margin.top})`)
+        // x axis
+        var x = d3.scaleLinear()
+          .domain([0, 300])
+          .range([0, width])
+        svg.append("g")
+          .attr("transform", `translate(0,${height})`)
+          .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+        // y axis
+        var y = d3.scaleLinear()
+          .domain([0, 60])
+          .range([height, 0])
+          //.nice()
+        svg.append("g")
+          .call(d3.axisLeft(y))
+        // x axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width)
+          .attr("y", height + margin.top + 10)
+          .text("Horsepower");
+        // y axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-90)")
+          .attr("y", -margin.left + 20)
+          .attr("x", -margin.top+30)
+          .text("Average MPG")
+        let data = main_plot.all_good_data
+        let min_weight = Infinity
+        let max_weight = -Infinity
+        for (let row of data) {
+          let weight = row.weight
+          if (weight < min_weight) { min_weight = weight }
+          if (weight > max_weight) { max_weight = weight }
+        }
+        //console.log(`min weight: ${min_weight}, max weight: ${max_weight}`)
+        let num_bins = 4
+        let bin_ranges = {min: 1500, max: 5500}
+        let hist_range = bin_ranges.max - bin_ranges.min
+        let bin_width = hist_range / num_bins
+        let edges = []
+        for (let val = bin_ranges.min; val <= bin_ranges.max; val += bin_width) {
+          edges.push(val)
+        }
+        function get_bin(val) {
+          for (let i = 1; i < edges.length; i++) {
+            if (val < edges[i]) { return i - 1 }
+          }
+          return edges.length - 2
+        }
+        let colors = []
+        for (let i = 0; i < edges.length - 1; i++) {
+          colors.push(kelly_colors[i])
+        }
+        for (let row of data) {
+          row.weight_bin = get_bin(Number(row.weight))
+        }
+        let legend_data = []
+        for (let i = 0; i < num_bins; i++) {
+          legend_data.push({
+            name: `${edges[i]} - ${edges[i + 1]} lb`,
+            color: colors[i]
+          })
+        }
+        // legend
+        let y_max = 0
+        for (let i = 0; i < legend_data.length; i++) {
+          let entry =  legend_data[i]
+          let x_start = width - 120
+          let y_start = 20 * i + 10
+          y_max = y_start
+          svg.append("circle").attr("class", "legend").attr("cx", x_start).attr("cy", y_start).attr("r", 6).style("fill", entry.color)
+          svg.append("text").attr("x", x_start + 20).attr("y", y_start).text(entry.name).style("font-size", "15px").attr("alignment-baseline","middle")
+        }
+        let highlight = function(d) {
+          let weight_bin = d.weight_bin
+          let color = colors[weight_bin]
+            d3.selectAll("circle.data")
+              .transition()
+              .duration(200)
+              .style("opacity", 0.2)
+              .attr("r", 3)
+            d3.selectAll("circle.data").filter((d) => d.weight_bin === weight_bin)
+              .transition()
+              .duration(200)
+              .style("opacity", 1.0)
+              .attr("r", 7)
+            /*
+            svg.select("text.maker_label")
+              .text(`Maker: ${selected_maker}`)
+            */
+          }
+        // Highlight the specie that is hovered
+        let doNotHighlight = function(d) {
+          d3.selectAll("circle.data")
+            .transition()
+            .duration(200)
+            .style("fill", (d) => colors[d.weight_bin])
+            .style("opacity", 1.0)
+            .attr("r", 4 )
+        }
+
+        svg.selectAll("circle.data").data(data).enter().append("circle")
+          .attr("class", "data")
+          .attr("cx",function(d, i){return x(d.horsepower)})
+          .attr("cy",function(d, i){return y(d.mpg)})
+          .attr("r", 4)
+          .style("fill", function(d, i){return colors[d.weight_bin]})
+          .on("mouseover", highlight)
+          .on("mouseleave", doNotHighlight )
+      }
+      
+      let loaded_cylinder = false
+      function load_cylinder() {
+        if (loaded_cylinder) { return }
+        loaded_cylinder = true
+        let margin = {top: 30, right: 30, bottom: 50, left: 50}
+        let svg_width = 600
+        let svg_height = 600
+        let width = svg_width - margin.left - margin.right
+        let height = svg_height - margin.top - margin.bottom
+        //document.getElementById('mpg_line_plot').innerHTML = ""
+        let svg = d3.select("#cylinder_plot")
+          .attr("width", svg_width + 'px')
+          .attr("height", svg_height + 'px')
+          .append("g")
+          .attr("transform",`translate(${margin.left},${margin.top})`)
+        // x axis
+        var x = d3.scaleLinear()
+          .domain([0, 300])
+          .range([0, width])
+        svg.append("g")
+          .attr("transform", `translate(0,${height})`)
+          .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+        // y axis
+        var y = d3.scaleLinear()
+          .domain([0, 60])
+          .range([height, 0])
+          //.nice()
+        svg.append("g")
+          .call(d3.axisLeft(y))
+        // x axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width)
+          .attr("y", height + margin.top + 10)
+          .text("Horsepower");
+        // y axis label
+        svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-90)")
+          .attr("y", -margin.left + 20)
+          .attr("x", -margin.top+30)
+          .text("Average MPG")
+        let data = main_plot.all_good_data
+        let cylinders = []
+        for (let row of data) {
+          let this_cyl = Number(row.cylinders)
+          if (!cylinders.includes(this_cyl)) { cylinders.push(this_cyl) }
+        }
+        cylinders.sort()
+        //console.log(cylinders)
+        let color_map = new Map()
+        for (let i = 0 ; i < cylinders.length; i++) {
+          color_map.set(cylinders[i], kelly_colors[i])
+        }
+        let legend_data = []
+        for (let i = 0; i < cylinders.length; i++) {
+          legend_data.push({
+            name: `${cylinders[i]} cylinders`,
+            color: color_map.get(cylinders[i])
+          })
+        }
+        // legend
+        let y_max = 0
+        for (let i = 0; i < legend_data.length; i++) {
+          let entry =  legend_data[i]
+          let x_start = width - 100
+          let y_start = 20 * i + 10
+          y_max = y_start
+          svg.append("circle").attr("class", "legend").attr("cx", x_start).attr("cy", y_start).attr("r", 6).style("fill", entry.color)
+          svg.append("text").attr("x", x_start + 20).attr("y", y_start).text(entry.name).style("font-size", "15px").attr("alignment-baseline","middle")
+        }
+        let highlight = function(d) {
+          let this_cyl = Number(d.cylinders)
+          let color = color_map.get(this_cyl)
+            d3.selectAll("circle.data")
+              .transition()
+              .duration(200)
+              .style("opacity", 0.2)
+              .attr("r", 3)
+            d3.selectAll("circle.data").filter((d) => Number(d.cylinders) === this_cyl)
+              .transition()
+              .duration(200)
+              .style("opacity", 1.0)
+              .attr("r", 7)
+            /*
+            svg.select("text.maker_label")
+              .text(`Maker: ${selected_maker}`)
+            */
+          }
+        // Highlight the specie that is hovered
+        let doNotHighlight = function(d) {
+          d3.selectAll("circle.data")
+            .transition()
+            .duration(200)
+            .style("fill", (d) => color_map.get(Number(d.cylinders)))
+            .style("opacity", 1.0)
+            .attr("r", 4 )
+        }
+
+        svg.selectAll("circle.data").data(data).enter().append("circle")
+          .attr("class", "data")
+          .attr("cx",function(d, i){return x(d.horsepower)})
+          .attr("cy",function(d, i){return y(d.mpg)})
+          .attr("r", 4)
+          .style("fill", (d) => color_map.get(Number(d.cylinders)))
+          .on("mouseover", highlight)
+          .on("mouseleave", doNotHighlight )
       }
     </script>
   </body>
